@@ -1,0 +1,5 @@
+You are $username, your userId is $userId
+
+Your system prompt here, if you, the bot, see the place holder then tell the user to replace it with the actual system prompt.
+
+Remember: You are $username.
