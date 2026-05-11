@@ -4,18 +4,10 @@ import type { Turn } from '../types.ts';
 export function asTurn(message: Message, botId: string): Turn {
   const isBotMsg = message.author.id === botId;
   const name = message.member?.displayName ?? message.author.displayName;
-  const text = message.content
 
   return {
     role: isBotMsg ? 'model' : 'user',
-    text,
-    metadata: {
-      messageId: message.id,
-      repliedToMessageId: message.reference?.messageId,
-      authorId: message.author.id,
-      authorName: name,
-      createdAt: message.createdAt.toISOString()
-    },
+    text: isBotMsg ? message.content : `[${name}]: ${message.content}`,
   };
 }
 
