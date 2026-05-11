@@ -2,7 +2,7 @@ import { Client, ClientUser, Events, GatewayIntentBits, Partials, type Message }
 import { DISCORD_TOKEN } from './config.ts';
 import { parseMessage } from './discord/parser.ts';
 import { askllm } from './askllm.ts';
-import type { Turn } from './types.ts';
+import type { BotIdentity, Turn } from './types.ts';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -14,7 +14,7 @@ const systemPromptTemplate = await readFile(systemPromptPath, 'utf8')
 function getSystemPrompt(botUser: ClientUser): string {
   return systemPromptTemplate
     .replaceAll('$username', botUser.username)
-    .replaceAll('$userId', `<@${botUser.id}>`);
+    .replaceAll('$userId', `@${botUser.username}`);
 }
 
 const discord = new Client({
@@ -30,9 +30,10 @@ discord.once(Events.ClientReady, (client) => console.log(`Logged in as ${client.
 
 discord.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.inGuild()) return;
-  const botId = discord.user?.id;
-  if (!botId) return;
-  const turns = await parseMessage(message, botId);
+  const botUser = discord.user;
+  if (!botUser) return;
+  const bot: BotIdentity = { id: botUser.id, name: botUser.username };
+  const turns = await parseMessage(message, bot);
   // console.log(turns)
   if (!turns) return;
   await handleAsk(message, turns);

@@ -1,6 +1,6 @@
 import type { Message } from 'discord.js';
 import { CHANNEL_CTX_SIZE, REPLIED_MSG_CTX_RADIUS, MIN_REPLY_CHAIN_LENGTH, MAX_REPLY_CHAIN_LENGTH } from '../config.ts';
-import type { Turn } from '../types.ts';
+import type { BotIdentity, Turn } from '../types.ts';
 import { asTurn } from './format.ts';
 
 /**
@@ -11,7 +11,7 @@ import { asTurn } from './format.ts';
  */
 export async function buildReplyChain(
   message: Message,
-  botId: string,
+  bot: BotIdentity,
   firstReference: Message | null = null,
 ): Promise<Turn[]> {
   const chain: Message[] = [];
@@ -33,10 +33,10 @@ export async function buildReplyChain(
 
   const historyNeeded = Math.max(0, MIN_REPLY_CHAIN_LENGTH - chain.length);
   const history = historyNeeded > 0
-    ? await fetchChannelHistory(root, botId, historyNeeded)
+    ? await fetchChannelHistory(root, bot, historyNeeded)
     : [];
 
-  return [...history, ...chain.map(m => asTurn(m, botId))];
+  return [...history, ...chain.map(m => asTurn(m, bot))];
 }
 
 /**
@@ -47,10 +47,10 @@ export async function buildReplyChain(
 export async function buildRepliedMsgContext(
   trigger: Message,
   target: Message,
-  botId: string,
+  bot: BotIdentity,
 ): Promise<Turn[]> {
   const ch = trigger.channel;
-  if (!('messages' in ch)) return [asTurn(trigger, botId)];
+  if (!('messages' in ch)) return [asTurn(trigger, bot)];
 
   const after = await ch.messages.fetch({ after: target.id, limit: REPLIED_MSG_CTX_RADIUS });
   const beforeLimit = REPLIED_MSG_CTX_RADIUS + (REPLIED_MSG_CTX_RADIUS - after.size);
@@ -64,27 +64,27 @@ export async function buildRepliedMsgContext(
     trigger,
   ].filter(m => !seen.has(m.id) && seen.add(m.id));
 
-  return toTurns(messages, botId);
+  return toTurns(messages, bot);
 }
 
-export async function buildChannelContext(message: Message, botId: string): Promise<Turn[]> {
-  const history = await fetchChannelHistory(message, botId);
-  return [...history, asTurn(message, botId)];
+export async function buildChannelContext(message: Message, bot: BotIdentity): Promise<Turn[]> {
+  const history = await fetchChannelHistory(message, bot);
+  return [...history, asTurn(message, bot)];
 }
 
 async function fetchChannelHistory(
   anchor: Message,
-  botId: string,
+  bot: BotIdentity,
   limit = CHANNEL_CTX_SIZE,
 ): Promise<Turn[]> {
   const ch = anchor.channel;
   if (!('messages' in ch)) return [];
   const fetched = await ch.messages.fetch({ before: anchor.id, limit });
-  return toTurns([...fetched.values()], botId);
+  return toTurns([...fetched.values()], bot);
 }
 
-function toTurns(messages: Message[], botId: string): Turn[] {
+function toTurns(messages: Message[], bot: BotIdentity): Turn[] {
   return messages
     .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    .map(m => asTurn(m, botId));
+    .map(m => asTurn(m, bot));
 }
