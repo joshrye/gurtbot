@@ -3,8 +3,8 @@ import type { BotIdentity, Turn } from '../types.ts';
 
 export function asTurn(message: Message, bot: BotIdentity): Turn {
   const isBotMsg = message.author.id === bot.id;
-  const name = message.member?.displayName ?? message.author.displayName;
-  const text = replaceBotMention(message.content, bot);
+  const name = message.author.username;
+  const text = resolveMentions(message);
 
   return {
     role: isBotMsg ? 'model' : 'user',
@@ -16,6 +16,9 @@ export function stripMention(content: string, botId: string): string {
   return content.replace(new RegExp(`<@!?${botId}>`, 'g'), '').trim();
 }
 
-function replaceBotMention(content: string, bot: BotIdentity): string {
-  return content.replace(new RegExp(`<@!?${bot.id}>`, 'g'), `@${bot.name}`);
+export function resolveMentions(message: Message): string {
+  return message.content.replace(/<@(\d+)>/g, (match, userId) => {
+    const user = message.client.users.cache.get(userId);
+    return user ? `@${user.username}` : match;
+  });
 }

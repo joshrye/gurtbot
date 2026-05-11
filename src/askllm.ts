@@ -18,7 +18,7 @@ const config = {
 };
 
 export async function askllm(turns: Turn[], systemInstruction?: string): Promise<string> {
-  console.log(turns)
+  // console.log(turns)
   const result = await ai.models.generateContent({
     model: GEMINI_MODEL,
     config: { ...config, systemInstruction: systemInstruction ? [{ text: systemInstruction }] : undefined },
