@@ -58,13 +58,13 @@ export async function buildRepliedMsgContext(
 
   const seen = new Set<string>();
   const messages = [
-    ...before.values(),
-    target,
-    ...after.values(),
     trigger,
-  ].filter(m => !seen.has(m.id) && seen.add(m.id));
+    ...after.values(),
+    target,
+    ...before.values(),
+  ].filter(m => !seen.has(m.id) && seen.add(m.id)).reverse();
 
-  return toTurns(messages, bot);
+  return messages.map(m => asTurn(m, bot));
 }
 
 export async function buildChannelContext(message: Message, bot: BotIdentity): Promise<Turn[]> {
@@ -80,11 +80,5 @@ async function fetchChannelHistory(
   const ch = anchor.channel;
   if (!('messages' in ch)) return [];
   const fetched = await ch.messages.fetch({ before: anchor.id, limit });
-  return toTurns([...fetched.values()], bot);
-}
-
-function toTurns(messages: Message[], bot: BotIdentity): Turn[] {
-  return messages
-    .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    .map(m => asTurn(m, bot));
+  return [...fetched.values()].reverse().map(m => asTurn(m, bot));
 }
